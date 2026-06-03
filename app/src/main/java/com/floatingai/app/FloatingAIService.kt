@@ -35,8 +35,6 @@ class FloatingAIService : AccessibilityService() {
     private val serviceScope = CoroutineScope(Dispatchers.Main + Job())
     private val okHttpClient = OkHttpClient()
 
-    // ── Lifecycle ──────────────────────────────────────────────────
-
     override fun onServiceConnected() {
         super.onServiceConnected()
         serviceInfo = AccessibilityServiceInfo().apply {
@@ -51,8 +49,6 @@ class FloatingAIService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
     override fun onInterrupt() {}
-
-    // ── Secure prefs ───────────────────────────────────────────────
 
     private fun prefs(): SharedPreferences = try {
         val masterKey = MasterKey.Builder(this)
@@ -80,8 +76,6 @@ class FloatingAIService : AccessibilityService() {
         )
         return prefs().getString("model_$idx", defaults[idx]) ?: defaults[idx]
     }
-
-    // ── Overlay ────────────────────────────────────────────────────
 
     private fun setupOverlayViews() {
         bubbleView   = LayoutInflater.from(this).inflate(R.layout.floating_bubble, null)
@@ -164,7 +158,7 @@ class FloatingAIService : AccessibilityService() {
                 if (ev.action == MotionEvent.ACTION_OUTSIDE) toggleExpanded(); false
             }
             try { windowManager.addView(expandedView, p) } catch (e: Exception) {}
-            isExpanded = true; loadClipboard()
+            isExpanded = true
         }
     }
 
@@ -178,8 +172,6 @@ class FloatingAIService : AccessibilityService() {
             if (input.text.isBlank()) { input.setText(text); callAI(text) }
         }
     }
-
-    // ── Multi-provider AI call ─────────────────────────────────────
 
     private fun callAI(text: String) {
         val apiKey = getApiKey()
@@ -226,7 +218,6 @@ class FloatingAIService : AccessibilityService() {
         })
     }
 
-    // Gemini
     private fun buildGeminiRequest(apiKey: String, model: String, prompt: String): Request {
         val payload = JSONObject().apply {
             put("contents", JSONArray().apply {
@@ -253,7 +244,6 @@ class FloatingAIService : AccessibilityService() {
             .getJSONObject("content").getJSONArray("parts")
             .getJSONObject(0).getString("text").trim()
 
-    // OpenAI-compatible (OpenAI, Groq, OpenRouter)
     private fun buildOpenAICompatRequest(apiKey: String, model: String, prompt: String, url: String): Request {
         val payload = JSONObject().apply {
             put("model", model)
@@ -276,7 +266,6 @@ class FloatingAIService : AccessibilityService() {
         JSONObject(body).getJSONArray("choices").getJSONObject(0)
             .getJSONObject("message").getString("content").trim()
 
-    // Anthropic
     private fun buildAnthropicRequest(apiKey: String, model: String, prompt: String): Request {
         val payload = JSONObject().apply {
             put("model", model)
