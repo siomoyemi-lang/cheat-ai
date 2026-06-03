@@ -89,7 +89,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:hint="Type or paste here…"
-            android:hintTextColor="#80FFFFFF"
+            android:textColorHint="#80FFFFFF"
             android:textColor="#FFFFFF"
             android:textSize="13sp"
             android:backgroundTint="#40FFFFFF"

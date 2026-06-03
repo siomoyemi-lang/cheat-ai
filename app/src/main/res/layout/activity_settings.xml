@@ -39,7 +39,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="sk-..."
-        android:hintTextColor="#555566"
+        android:textColorHint="#555566"
         android:inputType="textPassword"
         android:textColor="#FFFFFF"
         android:backgroundTint="#6C63FF"
