@@ -200,10 +200,11 @@ class FloatingAIService : AccessibilityService() {
             })
         }
 
-        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey"
+        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
 
         val request = Request.Builder()
             .url(url)
+            .addHeader("x-goog-api-key", apiKey)
             .post(payload.toString().toRequestBody("application/json".toMediaType()))
             .build()
 
