@@ -18,7 +18,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="OpenAI API Key"
+        android:text="Google Gemini API Key"
         android:textSize="16sp"
         android:textStyle="bold"
         android:textColor="#E0E0E0"
@@ -28,7 +28,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Get yours at platform.openai.com → API Keys\nStored encrypted on-device, never shared."
+        android:text="Get yours free at aistudio.google.com → Get API Key&#10;Stored encrypted on-device, never shared."
         android:textSize="13sp"
         android:textColor="#888899"
         android:lineSpacingMultiplier="1.4"
@@ -38,7 +38,7 @@
         android:id="@+id/apiKeyInput"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="sk-..."
+        android:hint="AIza..."
         android:textColorHint="#555566"
         android:inputType="textPassword"
         android:textColor="#FFFFFF"
