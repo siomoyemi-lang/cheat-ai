@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Floating AI</string>
+    <string name="accessibility_service_description">
+        Displays a floating AI assistant bubble that you can drag anywhere on screen.
+        It does not read or monitor other apps\' content.
+    </string>
+</resources>

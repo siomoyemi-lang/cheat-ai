@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.floatingai.app">
+
+    <!--
+        No SYSTEM_ALERT_WINDOW needed — TYPE_ACCESSIBILITY_OVERLAY is granted
+        via the Accessibility Service permission instead.
+        This is why other apps cannot detect us via Settings.canDrawOverlays().
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+            FloatingAIService extends AccessibilityService.
+            BIND_ACCESSIBILITY_SERVICE permission means only the system can bind to it.
+            exported="true" is required by the platform for accessibility services.
+        -->
+        <service
+            android:name=".FloatingAIService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false" />
+
+    </application>
+</manifest>
