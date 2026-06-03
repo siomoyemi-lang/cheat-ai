@@ -3,7 +3,7 @@ name: Build APK
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:   # allows manual trigger from GitHub UI
+  workflow_dispatch:
 
 jobs:
   build:
@@ -19,25 +19,19 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # Downloads Gradle 8.0 and makes the `gradle` command available
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: '8.0'
-
-      # Generates gradlew script + gradle-wrapper.jar (needed for ./gradlew)
       - name: Generate Gradle Wrapper
-        run: gradle wrapper --gradle-version=8.0
-
-      - name: Make gradlew executable
-        run: chmod +x gradlew
+        run: |
+          wget -q https://services.gradle.org/distributions/gradle-8.1-bin.zip -P /tmp
+          unzip -q /tmp/gradle-8.1-bin.zip -d /tmp
+          /tmp/gradle-8.1/bin/gradle wrapper --gradle-version=8.1
+          chmod +x gradlew
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace
 
-      - name: Upload APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: FloatingAI-debug
           path: app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 7   # keep for 7 days so you can download it
+          retention-days: 7
