@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.ClipboardManager
 import android.content.Intent
+import android.content.SharedPreferences
 import android.graphics.PixelFormat
 import android.view.*
 import android.view.accessibility.AccessibilityEvent
@@ -14,8 +15,8 @@ import kotlinx.coroutines.*
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
-import org.json.JSONObject
 import org.json.JSONArray
+import org.json.JSONObject
 import java.io.IOException
 import kotlin.math.abs
 
@@ -27,14 +28,14 @@ class FloatingAIService : AccessibilityService() {
     private var isExpanded = false
     private var bubbleParams: WindowManager.LayoutParams? = null
 
-    private var dragStartX = 0
-    private var dragStartY = 0
-    private var initialX = 0
-    private var initialY = 0
+    private var dragStartX = 0; private var dragStartY = 0
+    private var initialX = 0;   private var initialY = 0
     private var isDragging = false
 
     private val serviceScope = CoroutineScope(Dispatchers.Main + Job())
     private val okHttpClient = OkHttpClient()
+
+    // ── Lifecycle ──────────────────────────────────────────────────
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -51,20 +52,36 @@ class FloatingAIService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
     override fun onInterrupt() {}
 
-    // ── Encrypted key store ────────────────────────────────────────
+    // ── Secure prefs ───────────────────────────────────────────────
 
-    private fun getApiKey(): String = try {
+    private fun prefs(): SharedPreferences = try {
         val masterKey = MasterKey.Builder(this)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build()
         EncryptedSharedPreferences.create(
             this, "ai_secure_prefs", masterKey,
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        ).getString("gemini_key", "") ?: ""
-    } catch (e: Exception) { "" }
+        )
+    } catch (e: Exception) { getSharedPreferences("ai_prefs_fallback", MODE_PRIVATE) }
 
-    // ── Overlay setup ──────────────────────────────────────────────
+    private fun getProviderIndex() = prefs().getInt("provider_index", 0)
+    private fun getApiKey(): String {
+        val idx = getProviderIndex()
+        return prefs().getString("api_key_$idx", "") ?: ""
+    }
+    private fun getModel(): String {
+        val idx = getProviderIndex()
+        val defaults = listOf(
+            "gemini-2.0-flash",
+            "llama-3.3-70b-versatile",
+            "meta-llama/llama-3.3-70b-instruct:free",
+            "gpt-3.5-turbo",
+            "claude-haiku-4-5-20251001"
+        )
+        return prefs().getString("model_$idx", defaults[idx]) ?: defaults[idx]
+    }
+
+    // ── Overlay ────────────────────────────────────────────────────
 
     private fun setupOverlayViews() {
         bubbleView   = LayoutInflater.from(this).inflate(R.layout.floating_bubble, null)
@@ -84,10 +101,8 @@ class FloatingAIService : AccessibilityService() {
         }
         expandedView.findViewById<ImageButton>(R.id.btnSend).setOnClickListener {
             val q = expandedView.findViewById<EditText>(R.id.queryInput).text.toString().trim()
-            if (q.isNotBlank()) callAI(q)
-            else updateResponse("Type or paste something first")
+            if (q.isNotBlank()) callAI(q) else updateResponse("Type or paste something first")
         }
-
         addBubbleToWindow()
     }
 
@@ -100,10 +115,7 @@ class FloatingAIService : AccessibilityService() {
                     WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.START
-            x = 30; y = 300
-        }
+        ).apply { gravity = Gravity.TOP or Gravity.START; x = 30; y = 300 }
         try { windowManager.addView(bubbleView, bubbleParams) } catch (e: Exception) {}
     }
 
@@ -131,16 +143,13 @@ class FloatingAIService : AccessibilityService() {
         }
     }
 
-    // ── Toggle expanded card ───────────────────────────────────────
-
     private fun toggleExpanded() {
         if (isExpanded) {
             try { windowManager.removeView(expandedView) } catch (e: Exception) {}
-            isExpanded = false
-            addBubbleToWindow()
+            isExpanded = false; addBubbleToWindow()
         } else {
             try { windowManager.removeView(bubbleView) } catch (e: Exception) {}
-            val expandedParams = WindowManager.LayoutParams(
+            val p = WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
@@ -152,16 +161,12 @@ class FloatingAIService : AccessibilityService() {
                 x = bubbleParams?.x ?: 30; y = bubbleParams?.y ?: 300
             }
             expandedView.setOnTouchListener { _, ev ->
-                if (ev.action == MotionEvent.ACTION_OUTSIDE) toggleExpanded()
-                false
+                if (ev.action == MotionEvent.ACTION_OUTSIDE) toggleExpanded(); false
             }
-            try { windowManager.addView(expandedView, expandedParams) } catch (e: Exception) {}
-            isExpanded = true
-            loadClipboard()
+            try { windowManager.addView(expandedView, p) } catch (e: Exception) {}
+            isExpanded = true; loadClipboard()
         }
     }
-
-    // ── Clipboard ──────────────────────────────────────────────────
 
     private fun loadClipboard() {
         val cb = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
@@ -174,39 +179,30 @@ class FloatingAIService : AccessibilityService() {
         }
     }
 
-    // ── Gemini API call ────────────────────────────────────────────
+    // ── Multi-provider AI call ─────────────────────────────────────
 
     private fun callAI(text: String) {
         val apiKey = getApiKey()
         if (apiKey.isEmpty()) {
-            updateResponse("⚠️ Open Settings and add your Gemini API key")
+            updateResponse("⚠️ Open Settings (⚙) and add your API key")
             return
         }
         updateResponse("🤖 Thinking…")
 
-        val payload = JSONObject().apply {
-            put("contents", JSONArray().apply {
-                put(JSONObject().apply {
-                    put("parts", JSONArray().apply {
-                        put(JSONObject().apply {
-                            put("text", "You are a concise floating assistant. Reply in 200 characters or less.\n\nUser: ${text.take(500)}")
-                        })
-                    })
-                })
-            })
-            put("generationConfig", JSONObject().apply {
-                put("maxOutputTokens", 160)
-                put("temperature", 0.7)
-            })
+        val providerIdx = getProviderIndex()
+        val model = getModel()
+        val prompt = text.take(500)
+
+        val request = when (providerIdx) {
+            0 -> buildGeminiRequest(apiKey, model, prompt)
+            1, 2, 3 -> buildOpenAICompatRequest(apiKey, model, prompt,
+                if (providerIdx == 1) "https://api.groq.com/openai/v1/chat/completions"
+                else if (providerIdx == 2) "https://openrouter.ai/api/v1/chat/completions"
+                else "https://api.openai.com/v1/chat/completions"
+            )
+            4 -> buildAnthropicRequest(apiKey, model, prompt)
+            else -> buildGeminiRequest(apiKey, model, prompt)
         }
-
-        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
-
-        val request = Request.Builder()
-            .url(url)
-            .addHeader("x-goog-api-key", apiKey)
-            .post(payload.toString().toRequestBody("application/json".toMediaType()))
-            .build()
 
         okHttpClient.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
@@ -214,22 +210,91 @@ class FloatingAIService : AccessibilityService() {
             }
             override fun onResponse(call: Call, response: Response) {
                 serviceScope.launch {
+                    val body = response.body?.string() ?: ""
                     val reply = if (response.isSuccessful) {
                         try {
-                            JSONObject(response.body?.string() ?: "")
-                                .getJSONArray("candidates")
-                                .getJSONObject(0)
-                                .getJSONObject("content")
-                                .getJSONArray("parts")
-                                .getJSONObject(0)
-                                .getString("text").trim()
-                        } catch (e: Exception) { "Could not parse response" }
+                            when (providerIdx) {
+                                0 -> parseGeminiResponse(body)
+                                4 -> parseAnthropicResponse(body)
+                                else -> parseOpenAIResponse(body)
+                            }
+                        } catch (e: Exception) { "Parse error: ${e.message}" }
                     } else "API error ${response.code}"
                     updateResponse(reply)
                 }
             }
         })
     }
+
+    // Gemini
+    private fun buildGeminiRequest(apiKey: String, model: String, prompt: String): Request {
+        val payload = JSONObject().apply {
+            put("contents", JSONArray().apply {
+                put(JSONObject().apply {
+                    put("parts", JSONArray().apply {
+                        put(JSONObject().apply {
+                            put("text", "You are a concise assistant. Reply in 200 characters or less.\n\nUser: $prompt")
+                        })
+                    })
+                })
+            })
+            put("generationConfig", JSONObject().apply {
+                put("maxOutputTokens", 160); put("temperature", 0.7)
+            })
+        }
+        return Request.Builder()
+            .url("https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent")
+            .addHeader("x-goog-api-key", apiKey)
+            .post(payload.toString().toRequestBody("application/json".toMediaType()))
+            .build()
+    }
+    private fun parseGeminiResponse(body: String) =
+        JSONObject(body).getJSONArray("candidates").getJSONObject(0)
+            .getJSONObject("content").getJSONArray("parts")
+            .getJSONObject(0).getString("text").trim()
+
+    // OpenAI-compatible (OpenAI, Groq, OpenRouter)
+    private fun buildOpenAICompatRequest(apiKey: String, model: String, prompt: String, url: String): Request {
+        val payload = JSONObject().apply {
+            put("model", model)
+            put("messages", JSONArray().apply {
+                put(JSONObject().apply {
+                    put("role", "system")
+                    put("content", "You are a concise assistant. Reply in 200 characters or less.")
+                })
+                put(JSONObject().apply { put("role", "user"); put("content", prompt) })
+            })
+            put("max_tokens", 160); put("temperature", 0.7)
+        }
+        return Request.Builder()
+            .url(url)
+            .addHeader("Authorization", "Bearer $apiKey")
+            .post(payload.toString().toRequestBody("application/json".toMediaType()))
+            .build()
+    }
+    private fun parseOpenAIResponse(body: String) =
+        JSONObject(body).getJSONArray("choices").getJSONObject(0)
+            .getJSONObject("message").getString("content").trim()
+
+    // Anthropic
+    private fun buildAnthropicRequest(apiKey: String, model: String, prompt: String): Request {
+        val payload = JSONObject().apply {
+            put("model", model)
+            put("max_tokens", 160)
+            put("messages", JSONArray().apply {
+                put(JSONObject().apply { put("role", "user"); put("content", prompt) })
+            })
+            put("system", "You are a concise assistant. Reply in 200 characters or less.")
+        }
+        return Request.Builder()
+            .url("https://api.anthropic.com/v1/messages")
+            .addHeader("x-api-key", apiKey)
+            .addHeader("anthropic-version", "2023-06-01")
+            .post(payload.toString().toRequestBody("application/json".toMediaType()))
+            .build()
+    }
+    private fun parseAnthropicResponse(body: String) =
+        JSONObject(body).getJSONArray("content").getJSONObject(0).getString("text").trim()
 
     private fun updateResponse(text: String) {
         try { expandedView.findViewById<TextView>(R.id.aiResponseText).text = text } catch (e: Exception) {}

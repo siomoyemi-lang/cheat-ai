@@ -1,58 +1,99 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="24dp"
     android:background="#1A1A2E">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="⚙ Settings"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:textColor="#FFFFFF"
-        android:layout_marginBottom="6dp" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Google Gemini API Key"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:textColor="#E0E0E0"
-        android:layout_marginTop="24dp"
-        android:layout_marginBottom="4dp" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Get yours free at aistudio.google.com → Get API Key&#10;Stored encrypted on-device, never shared."
-        android:textSize="13sp"
-        android:textColor="#888899"
-        android:lineSpacingMultiplier="1.4"
-        android:layout_marginBottom="12dp" />
-
-    <EditText
-        android:id="@+id/apiKeyInput"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="AIza..."
-        android:textColorHint="#555566"
-        android:inputType="textPassword"
-        android:textColor="#FFFFFF"
-        android:backgroundTint="#6C63FF"
-        android:layout_marginBottom="20dp"
-        android:padding="10dp" />
+        android:orientation="vertical"
+        android:padding="24dp">
 
-    <Button
-        android:id="@+id/saveApiKeyBtn"
-        android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:text="Save Securely"
-        android:textSize="16sp"
-        android:backgroundTint="#6C63FF"
-        android:textColor="#FFFFFF" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⚙ AI Settings"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:layout_marginBottom="20dp" />
 
-</LinearLayout>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="AI Provider"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="#E0E0E0"
+            android:layout_marginBottom="6dp" />
+
+        <Spinner
+            android:id="@+id/providerSpinner"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:background="#2A2A4E"
+            android:backgroundTint="#6C63FF"
+            android:layout_marginBottom="20dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="API Key"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="#E0E0E0"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/apiKeyHint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:textColor="#888899"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/apiKeyInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Paste your API key here"
+            android:textColorHint="#555566"
+            android:inputType="textPassword"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#6C63FF"
+            android:layout_marginBottom="16dp"
+            android:padding="10dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Model (optional)"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="#E0E0E0"
+            android:layout_marginBottom="4dp" />
+
+        <EditText
+            android:id="@+id/modelInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="e.g. gemini-2.0-flash"
+            android:textColorHint="#555566"
+            android:inputType="text"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#6C63FF"
+            android:layout_marginBottom="24dp"
+            android:padding="10dp" />
+
+        <Button
+            android:id="@+id/saveApiKeyBtn"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:text="Save"
+            android:textSize="16sp"
+            android:backgroundTint="#6C63FF"
+            android:textColor="#FFFFFF" />
+
+    </LinearLayout>
+</ScrollView>
