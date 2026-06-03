@@ -4,11 +4,14 @@ plugins {
 }
 
 android {
-    namespace "com.floatingai.app"   // ← add this line
+    namespace "com.floatingai.app"
     compileSdk 34
     defaultConfig {
-        ...
-    }
+        applicationId "com.floatingai.app"
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
     }
     buildTypes {
         release {
@@ -22,7 +25,6 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
-    // Suppress missing gradlew lint warning in CI
     lintOptions {
         abortOnError false
     }
@@ -33,6 +35,5 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.9.0'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
-    // AES-256 encrypted SharedPreferences for API key storage
     implementation 'androidx.security:security-crypto:1.1.0-alpha06'
 }
